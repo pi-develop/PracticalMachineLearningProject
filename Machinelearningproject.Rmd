@@ -1,0 +1,119 @@
+---
+title: "ProjectMachineLearning"
+author: "Joshua Li"
+date: "9/14/2021"
+output:
+  html_document: default
+  pdf_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Introduction
+This project aims to use machine learning models to accurately predict how well a lifter is lifting by using data compiled by groupware@LES, found at this link here: http://web.archive.org/web/20161224072740/http:/groupware.les.inf.puc-rio.br/har.
+This data is obtained from accelerometers on the belt, forarm, arm, and dumbell of 6 participants, who were each asked to do barbell lifts correctly and incorrectly in 5 different ways. 
+## Loading In data
+
+```{r}
+library(lattice)
+library(ggplot2)
+library(caret)
+library(kernlab)
+library(rattle)
+library(corrplot)
+set.seed(90214)
+training<-read.csv("~/Rcoursera/pml-training.csv")
+testing<-read.csv("~/Rcoursera/pml-testing.csv")
+dim(training)
+dim(testing)
+```
+
+## Cleaning the data
+
+
+```{r}
+names(training)
+names(testing)
+```
+
+From this compilation of names, we can see that the first 7 columns of data have no relevancy to the measurements of data. Thus, we can safely remove these columns from the dataset.
+```{r}
+training<-training[,-c(1:7)]
+```
+
+Now that that order of business is done, we can also make another minor adjustment: removing the columns with NA values
+```{r}
+training<- training[,colMeans(is.na(training)) < .9]
+```
+
+The threshold of 90% is a reasonable amount, especially for columns, as if the column is caught at too low of a threshold, it could be removing valuable data from the gyroscopes, but anything with above 90% NA values is most likely insignificant and more of a burden than it would be useful.
+
+From there, we can move on to our final cleaning procedure: removing near zero variables
+
+```{r}
+nvz <- nearZeroVar(training)
+training <- training[,-nvz]
+dim(training)
+
+```
+
+These are the dimensions of the cleaned data. 
+
+```{r}
+inTrain <- createDataPartition(y=training$classe, p=0.7, list=F)
+traindata <- training[inTrain,]
+dim(traindata)
+```
+
+These are the dimensions of the testing set,
+
+```{r}
+validata <- training[-inTrain,]
+dim(validata)
+```
+
+These are the dimensions of the validation dataset,
+
+```{r}
+control <- trainControl(method="cv", number=3, verboseIter=F)
+dim(control)
+```
+
+And this are the dimensions of the control for using 3 fold cross variation.
+
+## Testing Models
+
+There are 3 popular models that will be tested on this dataset: Decision Trees, Random Forests, and Gradient Boosted Machines. The latter two are the most accurate of the 2 models taught in the course specialization, and the decision tree can be plotted and read efficiently to give us an idea of thresholds that are useful in prediction.
+
+### Decision Tree
+
+```{r}
+modtrees <- train(classe~., data=traindata, method="rpart", trControl = control, tuneLength = 5)
+fancyRpartPlot(modtrees$finalModel)
+predtrees <- predict(modtrees, validata)
+cmtrees <- confusionMatrix(predtrees, factor(validata$classe))
+cmtrees
+```
+
+### Random Forest
+```{r}
+modrf <- train(classe~., data=traindata, method="rf", trControl = control, tuneLength = 5)
+
+predrf <- predict(modrf, validata)
+cmrf <- confusionMatrix(predrf, factor(validata$classe))
+cmrf
+```
+
+### Gradient Boosted Machine
+```{r}
+modgbm <- train(classe~., data=traindata, method="gbm", trControl = control, tuneLength = 5, verbose = F)
+predgbm <- predict(modgbm, validata)
+cmgbm <- confusionMatrix(predgbm, factor(validata$classe))
+cmgbm
+```
+
+##Results
+
+The random forest had an accuracy of 99.47% and a 0.53% OOS error rate on the confusion matrix, which compared to the GBM's 98.69% accuracy and 1.31% OOS error rate is more accurate, albeit marginally. They both outperformed the decision tree, which was not a big surprise given that GBMS and Random Forests are the most accurate models for prediction. 
