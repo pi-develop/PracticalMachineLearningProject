@@ -34,4 +34,4 @@ predgbm <- predict(modgbm, valid)
 cmgbm <- confusionMatrix(predgbm, factor(valid$classe))
 cmgbm
 predict(modrf, testing)
-print(pred)
+
