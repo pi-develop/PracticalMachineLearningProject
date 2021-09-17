@@ -7,8 +7,6 @@ library(corrplot)
 set.seed(90214)
 training<-read.csv("~/Rcoursera/pml-training.csv")
 testing<-read.csv("~/Rcoursera/pml-testing.csv")
-training
-testing
 dim(training)
 dim(testing)
 names(training)
@@ -35,3 +33,5 @@ cmrf
 predgbm <- predict(modgbm, valid)
 cmgbm <- confusionMatrix(predgbm, factor(valid$classe))
 cmgbm
+predict(modrf, testing)
+print(pred)
